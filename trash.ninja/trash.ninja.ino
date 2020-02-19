@@ -127,11 +127,13 @@ void sendMessageThroughUDP()
 
     if(isnan(t)) t = -1;
     if(isnan(h)) h = -1;
+
+    static bool sendFirst = true;
     
     String deviceId = "RJjshhOeWjawudtf0fG7qhYU";
     String token = "maker:4PkvfZC55WkQW1VeVm0L6D4svzUVXKplRMESr39";
     //String value = getValues(); //"{\"t\":{\"value\":" + String(getBoardTemperature()) +"}}";
-    String value = "{" +
+    String value1 = "{" +
           String("\"distance1\":{\"value\":") + String(RangeInCentimeters) +"},"
           + String("\"temp\":{\"value\":") + String(t) +"},"
           + String("\"humid\":{\"value\":") + String(h) +"},"
@@ -141,6 +143,41 @@ void sendMessageThroughUDP()
           + String("\"battLevel\":{\"value\":\"") + battStr +"\"},"
           + String("\"gas\":{\"value\":") + String(ADC_value) +"}"
           + "}";
+
+
+  float dist = RangeInCentimeters;
+  if(dist > 90) dist = 90;
+  if(dist < 10) dist = 0;
+  float fillRatio = 100 - (dist / 95 * 100);
+
+  String lidStatus = "UNKNOWN";
+
+  float zstatus = AccMeter.getZ();
+
+  if(zstatus < 0) {
+    lidStatus = "OPEN";
+  } else if(zstatus > 0.9) {
+      lidStatus = "CLOSED";
+  } else if (zstatus > 0.5) {
+    lidStatus = "OVERCAPACITY";
+    fillRatio = 125;
+  } else {
+    lidStatus = "OVERFILL";
+    fillRatio = 150;
+  }
+
+    String value2 = "{" +
+          (lidStatus == "OPEN" ? "" : String("\"fillRatio\":{\"value\":") + String(fillRatio) +"},")
+          + String("\"lidStatus\":{\"value\":\"") + String(lidStatus) +"\"}"
+          + "}";
+
+//    String value2 = String("{") +
+//          + String("\"fillRatio\":{\"value\":") + String(fillRatio) + "},"
+//          + String("}");
+
+  String value = sendFirst ? value1 : value2;
+
+  sendFirst = !sendFirst;
 
 
   DEBUG_STREAM.println("payload:'" + value + "'");
@@ -168,6 +205,10 @@ void setup()
 {
 
   now = millis();
+
+  //Enable GPS module
+//  pinMode(GPS_ENABLE, OUTPUT);
+//  digitalWrite(GPS_ENABLE, state);
 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
