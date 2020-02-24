@@ -101,10 +101,12 @@ void BLUE() {
 }
 
 void BLANK() {
-  digitalWrite(LED_RED, LOW);
-  digitalWrite(LED_GREEN, LOW);
-  digitalWrite(LED_BLUE, LOW);
+  digitalWrite(LED_RED, HIGH);
+  digitalWrite(LED_GREEN, HIGH);
+  digitalWrite(LED_BLUE, HIGH);
 }
+
+int ledBlinked = 0;
 
 void sendMessageThroughUDP()
 {   
@@ -123,7 +125,9 @@ void sendMessageThroughUDP()
 
     uint16_t battValue = getBatteryVoltage();
 
-    String battStr = battValue > 4000 ? "FULL" : (battValue < 3400 ? "LOW" : "NORMAL");
+    if(isnan(battValue)) battValue = 0;
+
+    String battStr = battValue > 3700 ? "FULL" : (battValue < 3550 ? "LOW" : "NORMAL");
 
     if(isnan(t)) t = -1;
     if(isnan(h)) h = -1;
@@ -166,8 +170,11 @@ void sendMessageThroughUDP()
     fillRatio = 150;
   }
 
+    
+
     String value2 = "{" +
           (lidStatus == "OPEN" ? "" : String("\"fillRatio\":{\"value\":") + String(fillRatio) +"},")
+          + String("\"battValue\":{\"value\":\"") + battValue +"\"},"
           + String("\"lidStatus\":{\"value\":\"") + String(lidStatus) +"\"}"
           + "}";
 
@@ -306,11 +313,19 @@ void loop()
     
     sendMessageThroughUDP();
 
-    if(color) {
-      RED();
+    if(ledBlinked < 5) {
+      if(color) {
+        RED();
+      } else {
+        BLANK();
+      }
+      ledBlinked++;
     } else {
       BLANK();
     }
+
+    
+
 
     color = !color;
     delay(1000);
